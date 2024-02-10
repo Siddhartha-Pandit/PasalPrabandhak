@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from .manager import usermanager
 
 class Company(models.Model):
-    companyid=models.CharField(max_length=255,primary_key=True,null=False),
+    email=models.CharField(max_length=255,primary_key=True,null=False,default='')
     companyname=models.CharField(max_length=255,null=False,default='')
     address=models.CharField(max_length=255,null=False)
     pincode=models.CharField(max_length=20,null=False)
@@ -11,8 +11,9 @@ class Company(models.Model):
     long=models.CharField(max_length=100)
 
     def __str__(self):
-        return self.companyid
+        return self.email
     
+
 class Branch(models.Model):
     branch_id=models.AutoField(primary_key=True,null=False)
     company_id=models.ForeignKey(Company,on_delete=models.CASCADE)
@@ -25,8 +26,8 @@ class Branch(models.Model):
 
 class User(AbstractUser):
     email=models.CharField(max_length=255,primary_key=True,null=False)
-    fname=models.CharField(max_length=255)
-    lname=models.CharField(max_length=255)
+    fname=models.CharField(max_length=255,null=True)
+    lname=models.CharField(max_length=255,null=True)
     branchid=models.ForeignKey(Branch,on_delete=models.SET_NULL,null=True)
     iscmpid=models.BooleanField(default=False)
     companyid=models.ForeignKey(Company,on_delete=models.CASCADE,null=True)
@@ -45,8 +46,10 @@ class Subscription(models.Model):
     description=models.CharField(max_length=2000)
     price=models.IntegerField()
 
+
     def __str__(self):
-        return self.subscription_id
+        subscription_id=str(self.subscription_id)
+        return subscription_id
     
 class Subscription_purchase(models.Model):
     purchase_id=models.AutoField(primary_key=True,null=False)
@@ -56,6 +59,7 @@ class Subscription_purchase(models.Model):
     expiry_date=models.DateTimeField(null=False)
 
     def __str__(self):
+        purchase_id=str(self.purchase_id)
         return self.purchase_id
 
 
@@ -67,5 +71,6 @@ class attandance(models.Model):
     branch_id=models.ForeignKey(Branch,on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.attandance_id
+        attandance_id=str(self.attandance_id)
+        return attandance_id
 
