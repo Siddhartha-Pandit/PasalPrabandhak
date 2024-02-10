@@ -27,7 +27,7 @@ class User(AbstractUser):
     email=models.CharField(max_length=255,primary_key=True,null=False)
     fname=models.CharField(max_length=255)
     lname=models.CharField(max_length=255)
-    # branchid=models.ForeignKey(branch,on_delete=models.SET_NULL)
+    branchid=models.ForeignKey(Branch,on_delete=models.SET_NULL,null=True)
     iscmpid=models.BooleanField(default=False)
     companyid=models.ForeignKey(Company,on_delete=models.CASCADE,null=True)
     
