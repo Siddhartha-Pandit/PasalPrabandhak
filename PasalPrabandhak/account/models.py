@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin
 from .manager import usermanager
 
 class Company(models.Model):
@@ -24,14 +24,15 @@ class Branch(models.Model):
     def __str__(self):
         return self.branch_id
 
-class User(AbstractUser):
+class User(AbstractBaseUser,PermissionsMixin):
     email=models.CharField(max_length=255,primary_key=True,null=False)
     fname=models.CharField(max_length=255,null=True)
     lname=models.CharField(max_length=255,null=True)
     branchid=models.ForeignKey(Branch,on_delete=models.SET_NULL,null=True)
     iscmpid=models.BooleanField(default=False)
     companyid=models.ForeignKey(Company,on_delete=models.CASCADE,null=True)
-    
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     username=None
     USERNAME_FIELD='email'
     REQUIRED_FIELDS=[]
