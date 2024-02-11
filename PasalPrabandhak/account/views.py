@@ -9,6 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from . serializer import UserSerializer
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 def indexview(request):
     return HttpResponse("This is account view")
 
@@ -31,7 +32,7 @@ class CompanyRegisterView(APIView):
     
         company=Company(email=email,companyname=companyname,address=address,pincode=pincode,lat=lat,long=long)
         company.save()
-        user=User.objects.create_user(email=email,password=password,iscmpid=True,companyid=company)
+        user=User.objects.create_user(email=email,password=password,iscmpid=True,companyid=company,isadduser=True)
         return Response({"message":"The company registedred sucessfully"},status=status.HTTP_201_CREATED)
 
 class LoginView(APIView):
@@ -89,7 +90,7 @@ class RegisterBranchView(APIView):
                 branch=Branch(branch_id=branch_id,company_id=company,address=branchaddress,pincode=branchpincode,lat=branchlat,long=branchlong)
                 branch.save()
                 branchdata=Branch.objects.filter(branch_id=branch_id)
-                user=User.objects.create_user(email=branch_id,password=branchpassword,branchid=branch,iscmpid=False,isbraid=True,companyid=company)
+                user=User.objects.create_user(email=branch_id,password=branchpassword,branchid=branch,iscmpid=False,isbraid=True,companyid=company,isadduser=True)
                 return Response({"succes":"Branch is  added to the company"},status=status.HTTP_201_CREATED)
             
             else:
@@ -100,12 +101,54 @@ class RegisterBranchView(APIView):
         # return Response({"Success":"Login successfully"},status=status.HTTP_200_OK)
   
    
+class UserRegisterView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def post(self, request):
+        data = request.data
+        email = data.get('email')
+        password = data.get('password')
+        fname = data.get('fname')
+        lname = data.get('lname')
+        cmpid = data.get('cmpid')
+        branchid = data.get('branchid')
+        requestid = data.get('requestid')
 
-# class UserRegisterView(APIView):
-#     permission_classes=[IsAuthenticated]
-#     def post(self,request):
-#         email=request.data.get('email')
-#         password=request.data.get('password')
+        if not all([email, password, fname, lname, cmpid, branchid, requestid]):
+            return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-#         pass
+        try:
+            company = Company.objects.get(email=cmpid)
+            branch = Branch.objects.get(branch_id=branchid)
+            user = User.objects.get(email=requestid)
+        except ObjectDoesNotExist as e:
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        if User.objects.filter(email=email).exists():
+            return Response({"error": "The User already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.isadduser:
+            return Response({"error": "User is not allowed to add new user"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            user = User.objects.create_user(email=email, password=password, fname=fname, lname=lname, branchid=branch, companyid=company)
+            return Response({"message": "User is created"}, status=status.HTTP_201_CREATED)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+ 
+        
+
+        if User.objects.filter(email=email).exists():
+            return Response({"error":"The User already exists"},status=status.HTTP_400_BAD_REQUEST)
+        try:
+            userallow=User.objects.get(email=requestid)
+            isuserallow=userallow.isadduser
+            print(isuserallow)
+        except ObjectDoesNotExist:
+            return Response({"error": "User with requestid does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        if isuserallow:
+            user=User.objects.create_user(email=email,password=password,fname=fname,lname=lname,branchid=branch,companyid=company)
+            return Response({"message":"User is created"},status=status.HTTP_201_CREATED)
+        else:
+            return Response({"error":"User is not allowed to add new user"},status=status.HTTP_304_NOT_MODIFIED)
