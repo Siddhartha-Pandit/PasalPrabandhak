@@ -15,7 +15,7 @@ class Company(models.Model):
     
 
 class Branch(models.Model):
-    branch_id=models.AutoField(primary_key=True,null=False)
+    branch_id=models.CharField(max_length=255,primary_key=True,null=False)
     company_id=models.ForeignKey(Company,on_delete=models.CASCADE)
     address=models.CharField(max_length=255,null=False)
     pincode=models.CharField(max_length=20,null=False)
@@ -30,6 +30,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     lname=models.CharField(max_length=255,null=True)
     branchid=models.ForeignKey(Branch,on_delete=models.SET_NULL,null=True)
     iscmpid=models.BooleanField(default=False)
+    isbraid=models.BooleanField(default=False)
     companyid=models.ForeignKey(Company,on_delete=models.CASCADE,null=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
