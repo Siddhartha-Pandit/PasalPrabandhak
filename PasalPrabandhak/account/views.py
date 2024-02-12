@@ -94,6 +94,7 @@ class RegisterBranchView(APIView):
                 user=User.objects.create_user(email=branch_id,password=branchpassword,branchid=branch,iscmpid=False,isbraid=True,companyid=company,isadduser=True)
                 return Response({"succes":"Branch is  added to the company"},status=status.HTTP_201_CREATED)
             
+            
             else:
                 return Response({"error":"This is not company user id"},status=status.HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
