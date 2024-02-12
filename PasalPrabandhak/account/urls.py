@@ -7,4 +7,6 @@ urlpatterns = [
     path('CompanyRegister/', CompanyRegisterView.as_view(),name="account index"),
     path('login/', LoginView.as_view(),name="account index"),
     path('BranchRegister/', RegisterBranchView.as_view(),name="Branch index"),
+    path('UserRegister/', UserRegisterView.as_view(),name="user index"),
+    path('fogotpassword/', ChangePasswordView.as_view(),name="Change Password"),
 ]
