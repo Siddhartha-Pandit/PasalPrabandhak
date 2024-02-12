@@ -10,6 +10,7 @@ from . serializer import UserSerializer
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
+from django.contrib.auth import update_session_auth_hash
 def indexview(request):
     return HttpResponse("This is account view")
 
@@ -152,3 +153,21 @@ class UserRegisterView(APIView):
             return Response({"message":"User is created"},status=status.HTTP_201_CREATED)
         else:
             return Response({"error":"User is not allowed to add new user"},status=status.HTTP_304_NOT_MODIFIED)
+        
+class ChangePasswordView(APIView):
+    permission_classes=[IsAuthenticated]
+    def post(self,request):
+        user=request.user
+        oldpassword=request.data.get('oldpassword')
+        newpassword=request.data.get('newpassword')
+        if not oldpassword or not newpassword:
+            return Response({"error":"old password or new password is not provided"},status=status.HTTP_404_NOT_FOUND)
+        
+        if not user.check_password(oldpassword):
+            return Response({"error":"Current password is incorrect"},status=status.HTTP_400_BAD_REQUEST)
+        
+        user.set_password(newpassword)
+        user.save()
+        update_session_auth_hash(request,user)
+        return Response({"message":"password reset successful"},status=status.HTTP_200_OK)
+    
