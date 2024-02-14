@@ -1,10 +1,12 @@
 from . import sendingemail
+from datetime import datetime
+from django.utils import timezone
 from django.shortcuts import render
 from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from . models import Company,User,Branch,OTP
+from . models import Company,User,Branch,OTP,attandance
 from django.contrib.auth import authenticate,login,logout
 from rest_framework_simplejwt.tokens import RefreshToken
 from . serializer import UserSerializer
@@ -236,3 +238,27 @@ class LogoutView(APIView):
     def post(self,request):
         logout(request)
         return Response({"message":"user logout successfully"},status=status.HTTP_200_OK)
+
+class AttendanceView(APIView):
+    permission_classes=[IsAuthenticated]
+    def post(self,request):
+        
+        email=request.data.get('email')
+        if not email:
+            return Response({"error":"email is required"})
+        
+        try:
+           
+           
+            user=request.user
+            company=user.companyid 
+            branch=user.branchid
+            current_date=timezone.now().date()
+            already_marked=attandance.objects.filter(userid=user,time__date=current_date,company_id=company,branch_id=branch).exists() 
+            if already_marked:
+                return Response({"error": "Attendance already marked for today"}, status=status.HTTP_400_BAD_REQUEST)
+            ipaddress=request.META.get('REMOTE_ADDR')
+            attendance=attandance.objects.create(userid=user,time=datetime.now(),company_id=company, branch_id=branch,ipaddress=ipaddress)
+            return Response({"message":"Attendance is recorded","isattendancemarked":True},status=status.HTTP_201_CREATED)
+        except User.DoesNotExist:
+            return Response({"message":"user not found","isattendancemarked":False},status=status.HTTP_404_NOT_FOUND)

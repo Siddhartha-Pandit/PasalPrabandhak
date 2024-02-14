@@ -13,4 +13,5 @@ urlpatterns = [
     path('verifyotp/', verityotp.as_view(),name="Verify otp"),
     path('forgotpassword/', forgotpasswordview.as_view(),name="forgot Password"),
     path('logout/', LogoutView.as_view(),name="logout view"),
+    path('attandance/', AttendanceView.as_view(),name="attandance view"),
 ]

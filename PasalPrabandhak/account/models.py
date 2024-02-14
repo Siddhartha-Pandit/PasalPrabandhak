@@ -75,7 +75,7 @@ class attandance(models.Model):
     time=models.DateTimeField(null=False)
     company_id=models.ForeignKey(Company,on_delete=models.CASCADE)
     branch_id=models.ForeignKey(Branch,on_delete=models.CASCADE)
-
+    ipaddress = models.CharField(max_length=45, null=True, blank=True)
     def __str__(self):
         attandance_id=str(self.attandance_id)
         return attandance_id
@@ -100,5 +100,5 @@ class OTP(models.Model):
             return otp_instance
         except User.DoesNotExist:
             return None
+        
 
-    
