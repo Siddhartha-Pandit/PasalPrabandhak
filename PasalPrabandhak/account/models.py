@@ -1,7 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin
 from .manager import usermanager
-
+from django.utils import timezone
+from datetime import datetime
+import random
 class Company(models.Model):
     email=models.CharField(max_length=255,primary_key=True,null=False,default='')
     companyname=models.CharField(max_length=255,null=False,default='')
@@ -78,3 +80,22 @@ class attandance(models.Model):
         attandance_id=str(self.attandance_id)
         return attandance_id
 
+
+class OTP(models.Model):
+    user=models.ForeignKey(User,on_delete=models.CASCADE)
+    otp=models.IntegerField()
+    generatedtime=models.DateTimeField()
+    used=models.BooleanField()
+    
+    def is_expired(self):
+        expiration_time=timezone.now()-timezone.timedelta(minutes=5)
+        return self.generatedtime<expiration_time
+
+    @classmethod
+    def generate_otp(cls,email):
+        user=User.objects.get(email=email)
+        otp_value=random.randint(100000,999999)
+        otp=cls.create(user=user,otp=otp_value,generatedtime=datetime.now())
+        return otp
+
+    

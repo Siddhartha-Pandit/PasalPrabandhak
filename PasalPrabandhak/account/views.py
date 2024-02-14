@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from . models import Company,User,Branch
+from . models import Company,User,Branch,OTP
 from django.contrib.auth import authenticate,login
 from rest_framework_simplejwt.tokens import RefreshToken
 from . serializer import UserSerializer
@@ -11,6 +11,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth import update_session_auth_hash
+from sendingemail import send_email
 def indexview(request):
     return HttpResponse("This is account view")
 
@@ -172,3 +173,75 @@ class ChangePasswordView(APIView):
         update_session_auth_hash(request,user)
         return Response({"message":"password reset successful"},status=status.HTTP_200_OK)
     
+class generateotpview(APIView):
+    def post(self,request):
+        email=request.data.get('email')
+
+        if not email:
+            return Response({"error":"Email is required"},status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user=User.objects.get(email=email)
+        except:
+            return Response({"error":"user is not found"},status=status.HTTP_404_NOT_FOUND)
+        
+        
+        otp=OTP.generate_otp(email=email)
+       
+
+        subject="The otp for Forgot password"
+        message="Your otp is "+" "+ otp+". OTP expires in 5 minutes"
+
+        
+        send_email(subject,email,message)
+
+        return Response({"isotpsent":True},status=status.HTTP_200_OK)
+    
+class verityotp(APIView):
+    def post(self,request):
+        email=request.data.get('email')
+        otp_entered=request.data.get('otp')
+
+        if not email or not otp_entered:
+            return Response({"error":"email or otp is required to verify"},status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            otp_instance=OTP.objects.get(email=email,otp=otp_entered)
+            if otp_instance.used:
+                return Response({"error":"otp is expired"},status=status.HTTP_400_BAD_REQUEST)
+            elif otp_instance.is_expired():
+                return Response({"error":"OTP has been already been used"})
+            
+        except OTP.DoesNotExist:
+            return Response({"error":"invalid otp or otp has expired","isotpverified":False},status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({"message":"OTP verifiec successfully","isotpverified":True},status=status.HTTP_200_OK)
+
+
+class forgotpasswordview(APIView):
+    def post(self,request):
+        email=request.data.get('email')
+        otp_entered=request.get('otp')
+        password=request.data.get('password')
+
+        if not email or not otp_entered or not password:
+            return Response({"error":"Invalid OTP or email"})
+        
+        try:
+            otp_obj=OTP.objects.get(email=email,otp=otp_entered,used=False)
+            if otp_obj.is_expired():
+                return Response({"error":"Invalid OTP or OTP has expired"})
+            
+        except OTP.DoesNotExist:
+            return Response({"error":"Invalid OTP "},status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user=User.objects.get(email)
+            user.set_password(password)
+            user.save()
+            otp_obj.used=True
+            otp_obj.save()
+            return Response({"message":"Password reset sucessfully","ispasswordreset":True},status=status.HTTP_200_OK)
+        
+        except User.DoesNotExist:
+            return Response({"error":"user not found","ispasswordreset":False},status=status.HTTP_404_NOT_FOUND)
