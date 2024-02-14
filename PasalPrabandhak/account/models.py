@@ -93,9 +93,12 @@ class OTP(models.Model):
 
     @classmethod
     def generate_otp(cls,email):
-        user=User.objects.get(email=email)
-        otp_value=random.randint(100000,999999)
-        otp=cls.create(user=user,otp=otp_value,generatedtime=datetime.now())
-        return otp
+        try:
+            user = User.objects.get(email=email)
+            otp_value = random.randint(100000, 999999)
+            otp_instance = cls.objects.create(user=user, otp=otp_value, generatedtime=timezone.now(), used=False)
+            return otp_instance
+        except User.DoesNotExist:
+            return None
 
     

@@ -1,17 +1,18 @@
+from . import sendingemail
 from django.shortcuts import render
 from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from . models import Company,User,Branch,OTP
-from django.contrib.auth import authenticate,login
+from django.contrib.auth import authenticate,login,logout
 from rest_framework_simplejwt.tokens import RefreshToken
 from . serializer import UserSerializer
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth import update_session_auth_hash
-from sendingemail import send_email
+
 def indexview(request):
     return HttpResponse("This is account view")
 
@@ -141,21 +142,7 @@ class UserRegisterView(APIView):
  
         
 
-        if User.objects.filter(email=email).exists():
-            return Response({"error":"The User already exists"},status=status.HTTP_400_BAD_REQUEST)
-        try:
-            userallow=User.objects.get(email=requestid)
-            isuserallow=userallow.isadduser
-            print(isuserallow)
-        except ObjectDoesNotExist:
-            return Response({"error": "User with requestid does not exist"}, status=status.HTTP_404_NOT_FOUND)
-
-        if isuserallow:
-            user=User.objects.create_user(email=email,password=password,fname=fname,lname=lname,branchid=branch,companyid=company)
-            return Response({"message":"User is created"},status=status.HTTP_201_CREATED)
-        else:
-            return Response({"error":"User is not allowed to add new user"},status=status.HTTP_304_NOT_MODIFIED)
-        
+   
 class ChangePasswordView(APIView):
     permission_classes=[IsAuthenticated]
     def post(self,request):
@@ -190,10 +177,10 @@ class generateotpview(APIView):
        
 
         subject="The otp for Forgot password"
-        message="Your otp is "+" "+ otp+". OTP expires in 5 minutes"
+        message="Your otp is "+" "+ str(otp.otp)+". OTP expires in 5 minutes"
 
         
-        send_email(subject,email,message)
+        sendingemail.send_email(subject,email,message)
 
         return Response({"isotpsent":True},status=status.HTTP_200_OK)
     
@@ -206,7 +193,7 @@ class verityotp(APIView):
             return Response({"error":"email or otp is required to verify"},status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            otp_instance=OTP.objects.get(email=email,otp=otp_entered)
+            otp_instance=OTP.objects.get(user=email,otp=otp_entered)
             if otp_instance.used:
                 return Response({"error":"otp is expired"},status=status.HTTP_400_BAD_REQUEST)
             elif otp_instance.is_expired():
@@ -221,22 +208,18 @@ class verityotp(APIView):
 class forgotpasswordview(APIView):
     def post(self,request):
         email=request.data.get('email')
-        otp_entered=request.get('otp')
+        otp_entered=request.data.get('otp')
         password=request.data.get('password')
 
         if not email or not otp_entered or not password:
             return Response({"error":"Invalid OTP or email"})
         
         try:
-            otp_obj=OTP.objects.get(email=email,otp=otp_entered,used=False)
+            user=User.objects.get(email=email)
+            otp_obj=OTP.objects.get(user=user,otp=otp_entered,used=False)
             if otp_obj.is_expired():
                 return Response({"error":"Invalid OTP or OTP has expired"})
             
-        except OTP.DoesNotExist:
-            return Response({"error":"Invalid OTP "},status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            user=User.objects.get(email)
             user.set_password(password)
             user.save()
             otp_obj.used=True
@@ -244,4 +227,12 @@ class forgotpasswordview(APIView):
             return Response({"message":"Password reset sucessfully","ispasswordreset":True},status=status.HTTP_200_OK)
         
         except User.DoesNotExist:
-            return Response({"error":"user not found","ispasswordreset":False},status=status.HTTP_404_NOT_FOUND)
+            return Response({"error":"User not found"},status=status.HTTP_404_NOT_FOUND)
+        except OTP.DoesNotExist:
+            return  Response({"error": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST)
+       
+class LogoutView(APIView):
+    permission_classes=[IsAuthenticated]
+    def post(self,request):
+        logout(request)
+        return Response({"message":"user logout successfully"},status=status.HTTP_200_OK)
