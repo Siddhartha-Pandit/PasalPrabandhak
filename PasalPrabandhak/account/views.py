@@ -1,16 +1,20 @@
+from . import sendingemail
+from datetime import datetime
+from django.utils import timezone
 from django.shortcuts import render
 from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from . models import Company,User,Branch
-from django.contrib.auth import authenticate,login
+from . models import Company,User,Branch,OTP,attandance
+from django.contrib.auth import authenticate,login,logout
 from rest_framework_simplejwt.tokens import RefreshToken
 from . serializer import UserSerializer
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth import update_session_auth_hash
+
 def indexview(request):
     return HttpResponse("This is account view")
 
@@ -94,6 +98,7 @@ class RegisterBranchView(APIView):
                 user=User.objects.create_user(email=branch_id,password=branchpassword,branchid=branch,iscmpid=False,isbraid=True,companyid=company,isadduser=True)
                 return Response({"succes":"Branch is  added to the company"},status=status.HTTP_201_CREATED)
             
+            
             else:
                 return Response({"error":"This is not company user id"},status=status.HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
@@ -139,21 +144,7 @@ class UserRegisterView(APIView):
  
         
 
-        if User.objects.filter(email=email).exists():
-            return Response({"error":"The User already exists"},status=status.HTTP_400_BAD_REQUEST)
-        try:
-            userallow=User.objects.get(email=requestid)
-            isuserallow=userallow.isadduser
-            print(isuserallow)
-        except ObjectDoesNotExist:
-            return Response({"error": "User with requestid does not exist"}, status=status.HTTP_404_NOT_FOUND)
-
-        if isuserallow:
-            user=User.objects.create_user(email=email,password=password,fname=fname,lname=lname,branchid=branch,companyid=company)
-            return Response({"message":"User is created"},status=status.HTTP_201_CREATED)
-        else:
-            return Response({"error":"User is not allowed to add new user"},status=status.HTTP_304_NOT_MODIFIED)
-        
+   
 class ChangePasswordView(APIView):
     permission_classes=[IsAuthenticated]
     def post(self,request):
@@ -171,3 +162,105 @@ class ChangePasswordView(APIView):
         update_session_auth_hash(request,user)
         return Response({"message":"password reset successful"},status=status.HTTP_200_OK)
     
+class generateotpview(APIView):
+    def post(self,request):
+        email=request.data.get('email')
+
+        if not email:
+            return Response({"error":"Email is required"},status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user=User.objects.get(email=email)
+        except:
+            return Response({"error":"user is not found"},status=status.HTTP_404_NOT_FOUND)
+        
+        
+        otp=OTP.generate_otp(email=email)
+       
+
+        subject="The otp for Forgot password"
+        message="Your otp is "+" "+ str(otp.otp)+". OTP expires in 5 minutes"
+
+        
+        sendingemail.send_email(subject,email,message)
+
+        return Response({"isotpsent":True},status=status.HTTP_200_OK)
+    
+class verityotp(APIView):
+    def post(self,request):
+        email=request.data.get('email')
+        otp_entered=request.data.get('otp')
+
+        if not email or not otp_entered:
+            return Response({"error":"email or otp is required to verify"},status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            otp_instance=OTP.objects.get(user=email,otp=otp_entered)
+            if otp_instance.used:
+                return Response({"error":"otp is expired"},status=status.HTTP_400_BAD_REQUEST)
+            elif otp_instance.is_expired():
+                return Response({"error":"OTP has been already been used"})
+            
+        except OTP.DoesNotExist:
+            return Response({"error":"invalid otp or otp has expired","isotpverified":False},status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({"message":"OTP verifiec successfully","isotpverified":True},status=status.HTTP_200_OK)
+
+
+class forgotpasswordview(APIView):
+    def post(self,request):
+        email=request.data.get('email')
+        otp_entered=request.data.get('otp')
+        password=request.data.get('password')
+
+        if not email or not otp_entered or not password:
+            return Response({"error":"Invalid OTP or email"})
+        
+        try:
+            user=User.objects.get(email=email)
+            otp_obj=OTP.objects.get(user=user,otp=otp_entered,used=False)
+            if otp_obj.is_expired():
+                return Response({"error":"Invalid OTP or OTP has expired"})
+            
+            user.set_password(password)
+            user.save()
+            otp_obj.used=True
+            otp_obj.save()
+            return Response({"message":"Password reset sucessfully","ispasswordreset":True},status=status.HTTP_200_OK)
+        
+        except User.DoesNotExist:
+            return Response({"error":"User not found"},status=status.HTTP_404_NOT_FOUND)
+        except OTP.DoesNotExist:
+            return  Response({"error": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST)
+       
+class LogoutView(APIView):
+    permission_classes=[IsAuthenticated]
+    def post(self,request):
+        logout(request)
+        return Response({"message":"user logout successfully"},status=status.HTTP_200_OK)
+
+class AttendanceView(APIView):
+    permission_classes=[IsAuthenticated]
+    def post(self,request):
+        
+        email=request.data.get('email')
+        if not email:
+            return Response({"error":"email is required"})
+        
+        try:
+           
+           
+            user=request.user
+            company=user.companyid 
+            branch=user.branchid
+            current_date=timezone.now().date()
+            already_marked=attandance.objects.filter(userid=user,time__date=current_date,company_id=company,branch_id=branch).exists() 
+            if already_marked:
+                return Response({"error": "Attendance already marked for today"}, status=status.HTTP_400_BAD_REQUEST)
+            ipaddress=request.META.get('REMOTE_ADDR')
+            attendance=attandance.objects.create(userid=user,time=datetime.now(),company_id=company, branch_id=branch,ipaddress=ipaddress)
+            return Response({"message":"Attendance is recorded","isattendancemarked":True},status=status.HTTP_201_CREATED)
+        except User.DoesNotExist:
+            return Response({"message":"user not found","isattendancemarked":False},status=status.HTTP_404_NOT_FOUND)
+
+# https://ipapi.co/103.152.114.114/json/
