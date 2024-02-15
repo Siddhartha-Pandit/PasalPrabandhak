@@ -262,3 +262,5 @@ class AttendanceView(APIView):
             return Response({"message":"Attendance is recorded","isattendancemarked":True},status=status.HTTP_201_CREATED)
         except User.DoesNotExist:
             return Response({"message":"user not found","isattendancemarked":False},status=status.HTTP_404_NOT_FOUND)
+
+# https://ipapi.co/103.152.114.114/json/
