@@ -9,7 +9,7 @@ from rest_framework import status
 from . models import Company,User,Branch,OTP,attandance
 from django.contrib.auth import authenticate,login,logout
 from rest_framework_simplejwt.tokens import RefreshToken
-from . serializer import UserSerializer
+from . serializer import UserSerializer,BranchListSerializer
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
@@ -264,3 +264,115 @@ class AttendanceView(APIView):
             return Response({"message":"user not found","isattendancemarked":False},status=status.HTTP_404_NOT_FOUND)
 
 # https://ipapi.co/103.152.114.114/json/
+        
+class BranchAllList(APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self,request):
+        user=request.user
+        print("user belong to company id",user.email)
+        try:
+            branch=Branch.objects.filter(company_id=user.email)
+            serializer=BranchListSerializer(branch,many=True)
+            
+            #      searilizer=CustomerSerializers(customer,many=True)
+            # customer=Customer.objects.filter(companyid=user.companyid)
+            return Response({"message":serializer.data})
+        except Exception as e:
+            return Response({"error":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class BranchDetailList(APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self,request):
+        user=request.user
+        email=request.data.get('email')
+        print("user belong to company id",user.email)
+        try:
+            if user.iscmpid:
+                if not email:
+                    return Response({"error":"email is required"},status=status.HTTP_400_BAD_REQUEST)
+                if not Branch.objects.filter(branch_id=email,company_id=user.companyid).exists():
+                    return Response({"error":"The branch does not exists is required"},status=status.HTTP_404_NOT_FOUND)
+
+                branch=Branch.objects.filter(branch_id=email,company_id=user.companyid)
+            elif user.isbraid:
+                branch=Branch.objects.filter(branch_id=user.email,company_id=user.companyid)
+            else:
+                return Response({"error":"You are not allowed to access the user data"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            
+
+            serializer=BranchListSerializer(branch,many=True)
+            
+            #      searilizer=CustomerSerializers(customer,many=True)
+            # customer=Customer.objects.filter(companyid=user.companyid)
+            return Response({"message":serializer.data})
+        except Exception as e:
+            return Response({"error":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class UserAllListView(APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self,request):
+        user=request.user
+        email=request.data.get('email')
+        
+        print("user belong to company id",user.email)
+        try:
+            if user.iscmpid:
+                if not email:
+                    return Response({"error":"email is required"},status=status.HTTP_400_BAD_REQUEST)
+                if not Branch.objects.filter(branch_id=email,company_id=user.companyid).exists():
+                    return Response({"error":"The branch does not exists is required"},status=status.HTTP_404_NOT_FOUND)
+
+                userdata=User.objects.filter(companyid=user.companyid,branchid=email)
+                
+            elif user.isbraid:
+                
+
+                userdata=User.objects.filter(companyid=user.companyid,branchid=user.branchid)
+            
+            else:
+                return Response({"error":"You are not allowed to access the user data"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            
+            serializer=UserSerializer(userdata,many=True)
+
+
+            #      searilizer=CustomerSerializers(customer,many=True)
+            # customer=Customer.objects.filter(companyid=user.companyid)
+            return Response({"message":serializer.data})
+        except Exception as e:
+            return Response({"error":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UserAllDetailView(APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self,request):
+        user=request.user
+        email=request.data.get('email')
+        
+        
+        print("user belong to company id",user.email)
+        try:
+            if user.iscmpid:
+                if not email:
+                    return Response({"error":"email is required"},status=status.HTTP_400_BAD_REQUEST)
+                if not User.objects.filter(email=email,companyid=user.companyid).exists():
+                    return Response({"error":"The branch does not exists"},status=status.HTTP_404_NOT_FOUND)
+
+                userdata=User.objects.filter(companyid=user.companyid,email=email)
+                
+            elif user.isbraid:
+                
+
+                userdata=User.objects.filter(email=email,companyid=user.companyid,branchid=user.branchid)
+            
+            else:
+                return Response({"error":"You are not allowed to access the user data"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            
+            serializer=UserSerializer(userdata,many=True)
+
+
+            #      searilizer=CustomerSerializers(customer,many=True)
+            # customer=Customer.objects.filter(companyid=user.companyid)
+            return Response({"message":serializer.data})
+        except Exception as e:
+            return Response({"error":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
