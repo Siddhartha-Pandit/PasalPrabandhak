@@ -14,4 +14,11 @@ urlpatterns = [
     path('forgotpassword/', forgotpasswordview.as_view(),name="forgot Password"),
     path('logout/', LogoutView.as_view(),name="logout view"),
     path('attandance/', AttendanceView.as_view(),name="attandance view"),
+    path('allbranch/', BranchAllList.as_view(),name="branch view"),
+    path('userAlllist/', UserAllListView.as_view(),name="branch view"),
+    path('branchdetailview/', BranchDetailList.as_view(),name="branch view"),
+    path('userdetailview/', UserAllDetailView.as_view(),name="branch view"),
+    path('editbranch/', EditBranchView.as_view(),name="edit branch"),
+    path('edituser/', EditUserView.as_view(),name="edit  user"),
+    path('delete/', DeleteView.as_view(),name="delete"),
 ]

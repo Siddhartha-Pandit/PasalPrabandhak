@@ -38,6 +38,24 @@ class User(AbstractBaseUser,PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_billing_clerk=models.BooleanField(default=False)
+    isaddstock=models.BooleanField(default=False)
+    isaddbranch=models.BooleanField(default=False)
+    iseditbranch=models.BooleanField(default=False)
+    isviewbranch=models.BooleanField(default=False)
+    isdeletebranch=models.BooleanField(default=False)
+    isadduser=models.BooleanField(default=False)
+    isdeleteuser=models.BooleanField(default=False)
+    isedituser=models.BooleanField(default=False)
+    isviewuser=models.BooleanField(default=False)
+    isaddstock=models.BooleanField(default=False)
+    iseditstock=models.BooleanField(default=False)
+    iseviewstock=models.BooleanField(default=False)
+    isedeletestock=models.BooleanField(default=False)
+    isaddcustomer=models.BooleanField(default=False)
+    isdeletecompany=models.BooleanField(default=False)
+    istakeattendance=models.BooleanField(default=False)
+    
+    
     username=None
     USERNAME_FIELD='email'
     REQUIRED_FIELDS=[]
