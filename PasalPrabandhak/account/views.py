@@ -37,7 +37,7 @@ class CompanyRegisterView(APIView):
     
         company=Company(email=email,companyname=companyname,address=address,pincode=pincode,lat=lat,long=long)
         company.save()
-        user=User.objects.create_user(email=email,password=password,iscmpid=True,companyid=company,isadduser=True,isdeletecompany=True,isedituser=True,iseditbranch=True)
+        user=User.objects.create_user(email=email,password=password,iscmpid=True,companyid=company,isadduser=True,isdeletecompany=True,isedituser=True,iseditbranch=True,isaddbranch=True)
         return Response({"message":"The company registedred sucessfully"},status=status.HTTP_201_CREATED)
 
 class LoginView(APIView):
@@ -73,7 +73,7 @@ class LoginView(APIView):
 class RegisterBranchView(APIView):
     permission_classes=[IsAuthenticated]
     def post(self,request):
-        cmpemail=request.data.get('cmpemail')
+        cmpuser=request.user
         branch_id=request.data.get('branch_id')
         branchpassword=request.data.get('branchpassword')
         branchaddress=request.data.get('branchaddress')
@@ -81,21 +81,21 @@ class RegisterBranchView(APIView):
         branchlat=request.data.get('lat')
         branchlong=request.data.get('long')
 
-        if not cmpemail  or not branchpassword or not branchaddress or not branchpincode or not branchlat or not branchlong:
+        if not  branchpassword or not branchaddress or not branchpincode or not branchlat or not branchlong:
             return Response({"error":"All the data is not provided please provide all data"},status=status.HTTP_400_BAD_REQUEST)
         
         if Branch.objects.filter(branch_id=branch_id).exists():
             return Response({"error":"The branch already exists"},status=status.HTTP_400_BAD_REQUEST)
         try:
-            iscm=request.user
-            iscmp=iscm.isaddbranch
-
-            print("Company exist or not",iscmp)
+          
+            iscmp=cmpuser.isaddbranch
+            print("iscmp",iscmp)
+            
             if iscmp:
-                branch=Branch(branch_id=branch_id,company_id=company,address=branchaddress,pincode=branchpincode,lat=branchlat,long=branchlong)
+                branch=Branch(branch_id=branch_id,company_id=cmpuser.companyid,address=branchaddress,pincode=branchpincode,lat=branchlat,long=branchlong)
                 branch.save()
                 branchdata=Branch.objects.filter(branch_id=branch_id)
-                user=User.objects.create_user(email=branch_id,password=branchpassword,branchid=branch,iscmpid=False,isbraid=True,companyid=company,isadduser=True)
+                user=User.objects.create_user(email=branch_id,password=branchpassword,branchid=branch,iscmpid=False,isbraid=True,companyid=cmpuser.companyid,isadduser=True)
                 return Response({"succes":"Branch is  added to the company"},status=status.HTTP_201_CREATED)
             
             
@@ -116,28 +116,28 @@ class UserRegisterView(APIView):
         password = data.get('password')
         fname = data.get('fname')
         lname = data.get('lname')
-        cmpid = data.get('cmpid')
+       
         branchid = data.get('branchid')
-        requestid = data.get('requestid')
-
-        if not all([email, password, fname, lname, cmpid, branchid, requestid]):
+       
+        requsr=request.user
+        if not all([email, password, fname, lname,  branchid]):
             return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            company = Company.objects.get(email=cmpid)
+            
             branch = Branch.objects.get(branch_id=branchid)
-            user = request.user
+            
         except ObjectDoesNotExist as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         if User.objects.filter(email=email).exists():
             return Response({"error": "The User already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not user.isadduser:
+        if not requsr.isadduser:
             return Response({"error": "User is not allowed to add new user"}, status=status.HTTP_403_FORBIDDEN)
 
         try:
-            user = User.objects.create_user(email=email, password=password, fname=fname, lname=lname, branchid=branch, companyid=company)
+            user = User.objects.create_user(email=email, password=password, fname=fname, lname=lname, branchid=branch, companyid=requsr.companyid)
             return Response({"message": "User is created"}, status=status.HTTP_201_CREATED)
         except ValidationError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

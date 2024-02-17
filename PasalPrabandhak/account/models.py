@@ -34,7 +34,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     iscmpid=models.BooleanField(default=False)
     isbraid=models.BooleanField(default=False)
     isadduser=models.BooleanField(default=False)
-    companyid=models.ForeignKey(Company,on_delete=models.CASCADE,null=False,default='')
+    companyid=models.ForeignKey(Company,on_delete=models.CASCADE,null=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_billing_clerk=models.BooleanField(default=False)
