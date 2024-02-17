@@ -18,4 +18,7 @@ urlpatterns = [
     path('userAlllist/', UserAllListView.as_view(),name="branch view"),
     path('branchdetailview/', BranchDetailList.as_view(),name="branch view"),
     path('userdetailview/', UserAllDetailView.as_view(),name="branch view"),
+    path('editbranch/', EditBranchView.as_view(),name="edit branch"),
+    path('edituser/', EditUserView.as_view(),name="edit  user"),
+    path('delete/', DeleteView.as_view(),name="delete"),
 ]
