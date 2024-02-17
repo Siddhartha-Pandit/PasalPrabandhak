@@ -26,6 +26,9 @@ class AddCustomerView(APIView):
 
         if Customer.objects.filter(phone=phone).exists():
             return Response({"error":"The user already exists"},status=status.HTTP_400_BAD_REQUEST)
+        print(user.isaddcustomer)
+        if not user.is_billing_clerk or not user.isaddcustomer:
+                return Response({"error":"you are not allowed to add customer details"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
         customer=Customer(phone=phone,fname=fname,lname=lname,gender=gender,companyid=user.companyid)
         customer.save()
         return Response({"message":"Customer is added"},status=status.HTTP_201_CREATED)
@@ -36,6 +39,8 @@ class GetCustomerView(APIView):
         user=request.user
         phone= request.data.get('phone')
         try:
+            if not user.is_billing_clerk or not user.isviewcustomer:
+                return Response({"error":"you are not allowed to get customer details"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
             customer=Customer.objects.filter(phone=phone,companyid=user.companyid)
             if not customer:
                 raise NotFound("Customer does not exist")
@@ -57,6 +62,8 @@ class GetAllCustomerView(APIView):
             customer=Customer.objects.filter(companyid=user.companyid)
             if not customer:
                 raise NotFound("Customer does not exist")
+            if not user.is_billing_clerk  or not user.isviewcustomer:
+                return Response({"error":"you are not allowed to get customer details"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
             print(customer)
             searilizer=CustomerSerializers(customer,many=True)
             return Response({"customer":searilizer.data},status=status.HTTP_302_FOUND)
@@ -65,5 +72,21 @@ class GetAllCustomerView(APIView):
             return Response({"error":"Customer does not exists"},status=status.HTTP_404_NOT_FOUND)
 
     
+class DeleteCustomer(APIView):
+    permission_classes=[IsAuthenticated]
+    def delete(self,request):
+        user=request.user
+        phone= request.data.get('phone')
+        if not phone:
+            return Response({"error":"Phone is reequire to delete the customer"},status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            if not user.isdeletecustomer:
+                return Response({"error":"you are not allowed to get customer details"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            customer=Customer.objects.get(phone=phone,companyid=user.companyid)
+            customer.delete()
+            return Response({"Message":"Customer deleted successfully"},status=status.HTTP_200_OK)
+        except Customer.DoesNotExist:
+            return Response({"error":"Customer doesnot exist"},status=status.HTTP_404_NOT_FOUND)
         
         

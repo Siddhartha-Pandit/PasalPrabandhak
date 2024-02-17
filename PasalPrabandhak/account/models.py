@@ -52,6 +52,8 @@ class User(AbstractBaseUser,PermissionsMixin):
     iseviewstock=models.BooleanField(default=False)
     isedeletestock=models.BooleanField(default=False)
     isaddcustomer=models.BooleanField(default=False)
+    isviewcustomer=models.BooleanField(default=False)
+    isdeletecustomer=models.BooleanField(default=False)
     isdeletecompany=models.BooleanField(default=False)
     istakeattendance=models.BooleanField(default=False)
     
