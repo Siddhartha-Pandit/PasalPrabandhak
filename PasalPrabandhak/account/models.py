@@ -56,6 +56,9 @@ class User(AbstractBaseUser,PermissionsMixin):
     isdeletecustomer=models.BooleanField(default=False)
     isdeletecompany=models.BooleanField(default=False)
     istakeattendance=models.BooleanField(default=False)
+    isadddealer=models.BooleanField(default=False)
+    iseditdealer=models.BooleanField(default=False)
+    isremovedealer=models.BooleanField(default=False)
     
     
     username=None

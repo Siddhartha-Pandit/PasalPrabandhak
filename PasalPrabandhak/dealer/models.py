@@ -32,10 +32,11 @@ class Category(models.Model):
         ('sqm',"Square Meter"),
         ('cbm',"Cubic Meter"),
     )
+   
     categoryid=models.AutoField(primary_key=True)
     categoryname=models.CharField(max_length=255)
     categoryunit=models.CharField(max_length=50,choices=unitchoice)
-
+    companyid=models.ForeignKey(Company,on_delete=models.CASCADE)
     def __str__(self):
         return str(self.categoryid)
 
@@ -51,6 +52,7 @@ class Stock(models.Model):
     category=models.ForeignKey(Category,on_delete=models.SET_NULL,null=True,related_name='category_stock')
     unit=models.ForeignKey(Category,on_delete=models.SET_NULL,null=True,related_name='unit_stock')
     dealer=models.ForeignKey(Dealer,on_delete=models.SET_NULL,null=True)
+    companyid=models.ForeignKey(Company,on_delete=models.CASCADE)
 
     def __Str__(self):
         return self.barcode
