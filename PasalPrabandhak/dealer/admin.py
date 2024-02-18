@@ -1,3 +1,5 @@
 from django.contrib import admin
-
-# Register your models here.
+from . models import Dealer,Category,Stock
+admin.site.register(Dealer)
+admin.site.register(Category)
+admin.site.register(Stock)
